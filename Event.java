@@ -1,3 +1,5 @@
+import org.json.simple.JSONObject;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -16,11 +18,19 @@ public class Event {
         this.parentCalendarId = null;
     }
 
-    public Event(String name, LocalDateTime beginDate, LocalDateTime endDate) {
+    public Event(String name, LocalDateTime beginDate, LocalDateTime endDate, UUID parentCalendarId) {
         this.name = name;
         this.beginDate = beginDate;
         this.endDate = endDate;
         this.eventId = UUID.randomUUID();
+        this.parentCalendarId = parentCalendarId;
+    }
+
+    public Event(UUID uuid) {
+        this.name = "undefined";
+        this.beginDate = null;
+        this.endDate = null;
+        this.eventId = uuid;
         this.parentCalendarId = null;
     }
 
@@ -37,7 +47,7 @@ public class Event {
     }
 
     //public void setEventId(UUID eventId) {
-    //    this.eventId = eventId;
+        //this.eventId = eventId;
     //}
 
     public UUID getParentCalendarId() {
@@ -63,4 +73,27 @@ public class Event {
     public void setEndDate(LocalDateTime endDate) {
         this.endDate = endDate;
     }
+
+    public JSONObject getJSONOBJ() {
+        JSONObject obj = new JSONObject();
+
+        obj.put("name", name);
+        obj.put("beginDate", beginDate.toString());
+        obj.put("endDate", endDate.toString());
+        obj.put("eventId", eventId.toString());
+        obj.put("parentCalendarId", parentCalendarId.toString());
+
+        return obj;
+    }
+
+    public static Event toJavaEvent(JSONObject obj) {
+        Event event = new Event(UUID.fromString((String) obj.get("eventId")));
+        event.setName((String) obj.get("name"));
+        event.setBeginDate(LocalDateTime.parse((String) obj.get("beginDate")));
+        event.setEndDate(LocalDateTime.parse((String) obj.get("endDate")));
+        event.setParentCalendarId(UUID.fromString((String) obj.get("parentCalendarId")));
+
+        return event;
+    }
+
 }

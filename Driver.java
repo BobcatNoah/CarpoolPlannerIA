@@ -1,3 +1,5 @@
+import org.json.simple.JSONObject;
+
 public class Driver {
     private String name;
     private int carCapacity;
@@ -60,5 +62,27 @@ public class Driver {
 
     public void setCanPickUpRiders(boolean canPickUpRiders) {
         this.canPickUpRiders = canPickUpRiders;
+    }
+
+    public JSONObject getJSONOBJ() {
+        JSONObject obj = new JSONObject();
+
+        obj.put("name",  name);
+        obj.put("carCapacity", carCapacity);
+        obj.put("transportToEvent", transportToEvent);
+        obj.put("transportFromEvent",transportFromEvent);
+        obj.put("canPickUpRiders", canPickUpRiders);
+
+        return obj;
+    }
+
+    public static Driver toJavaDriver(JSONObject obj) {
+        Driver driver = new Driver();
+        driver.setName((String) obj.get("name"));
+        driver.setCarCapacity(((Number)obj.get("carCapacity")).intValue());
+        driver.setTransportToEvent((boolean) obj.get("transportToEvent"));
+        driver.setTransportFromEvent((boolean) obj.get("transportFromEvent"));
+        driver.setCanPickUpRiders((boolean) obj.get("canPickUpRiders"));
+        return driver;
     }
 }

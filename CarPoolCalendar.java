@@ -1,3 +1,6 @@
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -8,14 +11,25 @@ public class CarPoolCalendar {
     private UUID calendarId;
 
     public CarPoolCalendar() {
-        this.name = "undefined";
+        this("My Calendar");
+    }
+
+    public CarPoolCalendar(String name) {
+        this.name = name;
         this.events = new ArrayList<>();
         this.sharedEventIds = new ArrayList<>();
         this.calendarId = UUID.randomUUID();
     }
 
-    public CarPoolCalendar(String name) {
-        this.name = name;
+    public CarPoolCalendar(UUID uuid) {
+        this.name = "My Calendar";
+        this.events = new ArrayList<>();
+        this.sharedEventIds = new ArrayList<>();
+        this.calendarId = uuid;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public void setName(String name) {
@@ -32,5 +46,50 @@ public class CarPoolCalendar {
 
     public ArrayList<UUID> getSharedEventIds() {
         return sharedEventIds;
+    }
+
+    public UUID getCalendarId() {
+        return calendarId;
+    }
+
+    public JSONObject getJSONOBJ() {
+        JSONObject obj = new JSONObject();
+
+        obj.put("name", name);
+
+        JSONArray jsonEvents = new JSONArray();
+        for (Event event : events) {
+            jsonEvents.add(event.getJSONOBJ());
+        }
+        JSONArray jsonSharedEvents = new JSONArray();
+        for (UUID sharedEvent : sharedEventIds) {
+            jsonSharedEvents.add(sharedEvent.toString());
+        }
+        obj.put("events", jsonEvents);
+        obj.put("sharedEventIds", jsonSharedEvents);
+        obj.put("calendarId",calendarId.toString());
+
+        return obj;
+
+    }
+
+    public static CarPoolCalendar toJavaCalendar(JSONObject obj) {
+        CarPoolCalendar cal = new CarPoolCalendar(UUID.fromString((String)obj.get("calendarId")));
+        cal.setName((String) obj.get("name"));
+        for (Object event : (JSONArray) obj.get("events")) {
+            cal.getEvents().add(Event.toJavaEvent((JSONObject) event));
+        }
+        for (Object id : (JSONArray) obj.get("sharedEventIds")) {
+            cal.getSharedEventIds().add(UUID.fromString((String)id));
+        }
+
+
+        return cal;
+    }
+
+    public String toString() {
+        // The json object is already formatted
+        // So I use that instead of formatting it myself
+        return getJSONOBJ().toString();
     }
 }
