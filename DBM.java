@@ -34,6 +34,10 @@ public class DBM {
         return null;
     }
 
+    public static boolean userExists(String username) {
+        return new File(path + "users" + File.separatorChar + username).exists();
+    }
+
     public static boolean saveUser(User user) {
         File file = new File(path + "users" + File.separatorChar + user.getUsername());
         try {

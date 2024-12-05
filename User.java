@@ -77,7 +77,7 @@ public class User {
     public static User toJavaUser(JSONObject obj) {
         // Takes in a JSON object and converts it to a java User object
         User user = new User((String) obj.get("username"), (String) obj.get("password"));
-        if (((String) obj.get("calendarId")).equals("null")) {
+        if ((obj.get("calendarId").equals("null"))) {
             user.setCalendarId(null);
         } else {
             user.setCalendarId(UUID.fromString((String) obj.get("calendarId")));
@@ -88,6 +88,7 @@ public class User {
         for (Object rider : (JSONArray) obj.get("riders")) {
             user.getRiders().add(Rider.toJavaRider((JSONObject) rider));
         }
+
         return user;
     }
 

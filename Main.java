@@ -1,3 +1,4 @@
+import javax.swing.*;
 import java.time.LocalDateTime;
 
 public class Main {
@@ -11,16 +12,23 @@ public class Main {
 
         //DBM.saveCalendar(cal);
         //DBM.saveUser(user);
-        User user = DBM.loadUser("dombrowskinoah");
-        CarPoolCalendar cal = DBM.loadCalendar(user.getCalendarId());
+        //User user = DBM.loadUser("dombrowskinoah");
+        //CarPoolCalendar cal = DBM.loadCalendar(user.getCalendarId());
 
-        cal.getEvents().add(new Event("Soccer Practice", LocalDateTime.now(), LocalDateTime.now().plusHours(5), cal.getCalendarId()));
+        //cal.getEvents().add(new Event("Soccer Practice", LocalDateTime.now(), LocalDateTime.now().plusHours(5), cal.getCalendarId()));
 
-        DBM.saveCalendar(cal);
+        //DBM.saveCalendar(cal);
 
-        System.out.println(user);
-        System.out.println(cal);
+        //System.out.println(user);
+        //System.out.println(cal);
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                LoginScreen login = new LoginScreen();
+                login.setVisible(true);
+            }
+        });
 
-        System.out.println("Just to be safe: \n" + DBM.loadCalendar(user.getCalendarId()));
+
     }
 }

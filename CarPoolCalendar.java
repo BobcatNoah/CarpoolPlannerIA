@@ -21,7 +21,7 @@ public class CarPoolCalendar {
         this.calendarId = UUID.randomUUID();
     }
 
-    public CarPoolCalendar(UUID uuid) {
+    private CarPoolCalendar(UUID uuid) {
         this.name = "My Calendar";
         this.events = new ArrayList<>();
         this.sharedEventIds = new ArrayList<>();
