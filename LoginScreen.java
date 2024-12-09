@@ -27,7 +27,7 @@ public class LoginScreen extends JFrame {
                 String usernameInput = usernameField.getText();
                 String passwordInput = new String(passwordField.getPassword());
 
-                if (DBM.userExists(usernameInput)) {
+                if (!usernameInput.isEmpty() && DBM.userExists(usernameInput)) {
                     System.out.println("User: " + usernameInput + " exists");
                     User user = DBM.loadUser(usernameInput);
 
@@ -36,6 +36,8 @@ public class LoginScreen extends JFrame {
 
                         // Delete the sign in menu screen
                         dispose();
+
+                        HomeScreen homeScreen = new HomeScreen(user);
                     } else {
                         System.out.println("Incorrect password");
                         JOptionPane.showMessageDialog(null,
