@@ -52,6 +52,15 @@ public class CarPoolCalendar {
         return calendarId;
     }
 
+    public void editEvent(Event event) {
+        for (int i = 0; i < events.size(); i++) {
+            if (events.get(i).getEventId().equals(event.getEventId())) {
+                events.set(i, event);
+                return;
+            }
+        }
+    }
+
     public JSONObject getJSONOBJ() {
         JSONObject obj = new JSONObject();
 

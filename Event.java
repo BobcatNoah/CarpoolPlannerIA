@@ -1,6 +1,8 @@
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.UUID;
 
 public class Event {
@@ -9,6 +11,8 @@ public class Event {
     private LocalDateTime endDate;
     private UUID eventId;
     private UUID parentCalendarId;
+    private ArrayList<Driver> drivers;
+    private ArrayList<Rider> riders;
 
     public Event() {
         this.name = "undefined";
@@ -16,6 +20,8 @@ public class Event {
         this.endDate = null;
         this.eventId = UUID.randomUUID();
         this.parentCalendarId = null;
+        this.drivers = new ArrayList<Driver>();
+        this.riders = new ArrayList<Rider>();
     }
 
     public Event(String name, LocalDateTime beginDate, LocalDateTime endDate, UUID parentCalendarId) {
@@ -24,6 +30,8 @@ public class Event {
         this.endDate = endDate;
         this.eventId = UUID.randomUUID();
         this.parentCalendarId = parentCalendarId;
+        this.drivers = new ArrayList<Driver>();
+        this.riders = new ArrayList<Rider>();
     }
 
     public Event(UUID uuid) {
@@ -32,6 +40,8 @@ public class Event {
         this.endDate = null;
         this.eventId = uuid;
         this.parentCalendarId = null;
+        this.drivers = new ArrayList<Driver>();
+        this.riders = new ArrayList<Rider>();
     }
 
     public String getName() {
@@ -74,6 +84,15 @@ public class Event {
         this.endDate = endDate;
     }
 
+    public ArrayList<Driver> getDrivers() {
+        return drivers;
+    }
+
+    public ArrayList<Rider> getRiders() {
+        return riders;
+    }
+
+
     public JSONObject getJSONOBJ() {
         JSONObject obj = new JSONObject();
 
@@ -82,6 +101,17 @@ public class Event {
         obj.put("endDate", endDate.toString());
         obj.put("eventId", eventId.toString());
         obj.put("parentCalendarId", parentCalendarId.toString());
+
+        JSONArray jsonDrivers = new JSONArray();
+        for (Driver driver : drivers) {
+            jsonDrivers.add(driver.getJSONOBJ());
+        }
+        JSONArray jsonRiders = new JSONArray();
+        for (Rider rider : riders) {
+            jsonRiders.add(rider.getJSONOBJ());
+        }
+        obj.put("drivers", jsonDrivers);
+        obj.put("riders", jsonRiders);
 
         return obj;
     }
@@ -92,6 +122,15 @@ public class Event {
         event.setBeginDate(LocalDateTime.parse((String) obj.get("beginDate")));
         event.setEndDate(LocalDateTime.parse((String) obj.get("endDate")));
         event.setParentCalendarId(UUID.fromString((String) obj.get("parentCalendarId")));
+
+        // For each JSONObject in the JSONArray of drivers and riders
+        // Convert to java object and add to the event
+        for (Object driver : ((JSONArray)obj.get("drivers"))) {
+            event.getDrivers().add(Driver.toJavaDriver((JSONObject) driver));
+        }
+        for (Object rider : (JSONArray) obj.get("riders")) {
+            event.getRiders().add(Rider.toJavaRider((JSONObject) rider));
+        }
 
         return event;
     }

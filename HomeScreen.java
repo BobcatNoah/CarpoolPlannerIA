@@ -16,14 +16,21 @@ public class HomeScreen extends JFrame {
     private JButton settingsButton;
     private JLabel dateLabel;
     private JButton addEventButton;
+    private JPanel calendarContentPane;
     private JPanel calendarContainer;
     private JPanel weekPanel;
+
+    private User user;
+    private CarPoolCalendar calendar;
 
     public HomeScreen(User user) {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setContentPane(contentPane);
         pack();
         setSize(1200, 600);
+
+        this.user = user;
+        this.calendar = DBM.loadCalendar(user.getCalendarId());
 
         initCalendar(LocalDate.now().getYear(), LocalDate.now().getMonthValue());
         initButtons();
@@ -35,7 +42,8 @@ public class HomeScreen extends JFrame {
         addEventButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-
+                System.out.println("Event Menu");
+                EditEventScreen createEventScreen = new EditEventScreen(user, calendar);
             }
         });
     }
@@ -107,25 +115,28 @@ public class HomeScreen extends JFrame {
         jButtonContainer.setLayout(new BorderLayout(0, 0));
         jMenuBar.add(jButtonContainer, BorderLayout.EAST);
         addGroupButton = new JButton();
-        addGroupButton.setText("Button");
+        addGroupButton.setText("Add Group");
         jButtonContainer.add(addGroupButton, BorderLayout.WEST);
         settingsButton = new JButton();
         settingsButton.setEnabled(true);
-        settingsButton.setText("Set");
+        settingsButton.setText("Settings");
         jButtonContainer.add(settingsButton, BorderLayout.EAST);
         addEventButton = new JButton();
-        addEventButton.setText("Button");
+        addEventButton.setText("Add Event");
         jButtonContainer.add(addEventButton, BorderLayout.CENTER);
         dateLabel = new JLabel();
         dateLabel.setHorizontalAlignment(0);
         dateLabel.setText("Label");
         jMenuBar.add(dateLabel, BorderLayout.CENTER);
+        calendarContentPane = new JPanel();
+        calendarContentPane.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(2, 1, new Insets(0, 0, 0, 0), -1, -1));
+        contentPane.add(calendarContentPane, BorderLayout.CENTER);
+        weekPanel = new JPanel();
+        weekPanel.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
+        calendarContentPane.add(weekPanel, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, 1, null, null, null, 0, false));
         calendarContainer = new JPanel();
         calendarContainer.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
-        contentPane.add(calendarContainer, BorderLayout.CENTER);
-        weekPanel = new JPanel();
-        weekPanel.setLayout(new BorderLayout(0, 0));
-        calendarContainer.add(weekPanel, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        calendarContentPane.add(calendarContainer, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
     }
 
     /**
