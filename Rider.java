@@ -27,4 +27,14 @@ public class Rider {
     public static Rider toJavaRider(JSONObject obj) {
         return new Rider((String)obj.get("name"));
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        return name.equals(((Rider) obj).getName());
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

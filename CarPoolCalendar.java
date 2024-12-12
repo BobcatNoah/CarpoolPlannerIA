@@ -1,6 +1,7 @@
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -50,6 +51,19 @@ public class CarPoolCalendar {
 
     public UUID getCalendarId() {
         return calendarId;
+    }
+
+    public Event getEventByDate(LocalDate date) {
+        for (int i = 0; i < events.size(); i++) {
+            // Return an arraylist of events that occur on the date parameter
+            //events.get(i).getBeginDate().isAfter(date.atStartOfDay())
+            // events.get(i).getBeginDate().isBefore(date.plusDays(1).atStartOfDay()
+            // If event starts before the end of day on date and
+            if (events.get(i).getBeginDate().isBefore(date.plusDays(1).atStartOfDay()) && events.get(i).getEndDate().isAfter(date.atStartOfDay()) ) {
+                return events.get(i);
+            }
+        }
+        return null;
     }
 
     public void editEvent(Event event) {

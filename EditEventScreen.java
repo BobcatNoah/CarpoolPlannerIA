@@ -23,7 +23,7 @@ public class EditEventScreen extends JFrame {
     private JButton setEndDateButton;
     private JLabel driversLabel;
     private JList driversList;
-    private JButton addDriverButton;
+    private JButton addNewDriverButton;
     private JLabel ridersLabel;
     private JList ridersList;
     private JButton addNewRiderButton;
@@ -33,10 +33,12 @@ public class EditEventScreen extends JFrame {
 
     private CarPoolCalendar calendar;
     private User user;
+    private DefaultListModel<Rider> riderModel = new DefaultListModel<>();
+    private DefaultListModel<Driver> driverModel = new DefaultListModel<>();
 
     // Creates an event when no parameters are passed
     public EditEventScreen(User user, CarPoolCalendar cal) {
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setContentPane(contentPane);
         pack();
 
@@ -46,6 +48,7 @@ public class EditEventScreen extends JFrame {
 
         initButtons(false);
         initInfo();
+
 
         setVisible(true);
     }
@@ -71,16 +74,30 @@ public class EditEventScreen extends JFrame {
         beginDateField.setText(event.getBeginDate().format(DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
         endDateField.setText(event.getEndDate().format(DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
 
-        driversList = new JList(user.getDrivers().toArray());
-        ridersList = new JList(user.getRiders().toArray());
+        // When editing event select the already selected riders and drivers
+        event.getRiders().forEach(riderModel::addElement);
+        event.getDrivers().forEach(driverModel::addElement);
+        for (Rider rider : user.getRiders()) {
+          if (!event.getRiders().contains(rider)) {
+              riderModel.addElement(rider);
+
+          }
+        }
+        for (Driver driver : user.getDrivers()) {
+            if (!event.getDrivers().contains(driver)) {
+              driverModel.addElement(driver);
+            }
+        }
     }
 
     private void initInfo() {
         title.setText("Create Event");
 
+        user.getRiders().forEach(riderModel::addElement);
+        user.getDrivers().forEach(driverModel::addElement);
 
-        driversList = new JList(user.getDrivers().toArray());
-        ridersList = new JList(user.getRiders().toArray());
+        driversList.setModel(driverModel);
+        ridersList.setModel(riderModel);
 
     }
 
@@ -103,6 +120,33 @@ public class EditEventScreen extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 endDateField.setText(LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
+            }
+        });
+
+        addNewRiderButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String name = JOptionPane.showInputDialog(null, "Please enter the name of the new rider:",
+                        "Name Input", JOptionPane.QUESTION_MESSAGE);
+
+                // Warn user if input is blank
+                // TODO: Fix this
+                if (name != null && !name.isBlank()) {
+                    JOptionPane.showMessageDialog(null, "Rider: " + name + ", added to event",
+                            "Name Confirmation", JOptionPane.INFORMATION_MESSAGE);
+                    Rider rider = new Rider(name);
+                    riderModel.addElement(rider);
+                } else {
+                    JOptionPane.showMessageDialog(null, "No name was entered.",
+                            "Input Cancelled", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        });
+
+        addNewDriverButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                EditDriverScreen driverMenu = new EditDriverScreen();
             }
         });
 
@@ -197,9 +241,9 @@ public class EditEventScreen extends JFrame {
         contentPane.add(driversLabel, new com.intellij.uiDesigner.core.GridConstraints(4, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         driversList = new JList();
         contentPane.add(driversList, new com.intellij.uiDesigner.core.GridConstraints(4, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(150, 50), null, 0, false));
-        addDriverButton = new JButton();
-        addDriverButton.setText("Add New Driver");
-        contentPane.add(addDriverButton, new com.intellij.uiDesigner.core.GridConstraints(4, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        addNewDriverButton = new JButton();
+        addNewDriverButton.setText("Add New Driver");
+        contentPane.add(addNewDriverButton, new com.intellij.uiDesigner.core.GridConstraints(4, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         ridersLabel = new JLabel();
         ridersLabel.setText("Riders:");
         contentPane.add(ridersLabel, new com.intellij.uiDesigner.core.GridConstraints(5, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));

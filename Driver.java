@@ -1,5 +1,7 @@
 import org.json.simple.JSONObject;
 
+import java.util.Objects;
+
 public class Driver {
     private String name;
     private int carCapacity;
@@ -84,5 +86,20 @@ public class Driver {
         driver.setTransportFromEvent((boolean) obj.get("transportFromEvent"));
         driver.setCanPickUpRiders((boolean) obj.get("canPickUpRiders"));
         return driver;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return name.equals(((Driver) obj).getName());
+    }
+
+    @Override
+    public String toString() {
+        return
+                "name='" + name + '\'' +
+                ", carCapacity=" + carCapacity +
+                ", transportToEvent=" + transportToEvent +
+                ", transportFromEvent=" + transportFromEvent +
+                ", canPickUpRiders=" + canPickUpRiders;
     }
 }

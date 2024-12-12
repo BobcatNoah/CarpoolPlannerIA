@@ -42,13 +42,22 @@ public class HomeScreen extends JFrame {
         addEventButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                // Open event creator screen when user click the add event button
                 System.out.println("Event Menu");
                 EditEventScreen createEventScreen = new EditEventScreen(user, calendar);
+
+                // Reload the calendar screen
+                initCalendar(LocalDate.now().getYear(), LocalDate.now().getMonthValue());
             }
         });
     }
 
     private void initCalendar(int year, int month) {
+        // Simply clearing components so that there aren't duplicates
+        // when calendar is reloaded
+        calendarContainer.removeAll();
+        weekPanel.removeAll();
+
         calendarContainer.setLayout(new GridLayout(0, 7));
         weekPanel.setLayout(new GridLayout(0, 7));
 
@@ -77,7 +86,10 @@ public class HomeScreen extends JFrame {
             dayNum.setFont(new Font("Arial", Font.BOLD, 14));
             dayNum.setBorder(new EmptyBorder(10, 10, 10, 10));
             dayPanel.add(dayNum, BorderLayout.PAGE_START);
-            dayPanel.add(dayNum, BorderLayout.CENTER);
+            Event eventOfDay = calendar.getEventByDate(LocalDate.of(year, month, day));
+            if (eventOfDay != null) {
+                dayPanel.add(new JLabel(eventOfDay.getName(), JLabel.CENTER), BorderLayout.CENTER);
+            }
 
             dayPanel.setBorder(BorderFactory.createLineBorder(Color.lightGray));
             calendarContainer.add(dayPanel);
