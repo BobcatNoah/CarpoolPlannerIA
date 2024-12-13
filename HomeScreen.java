@@ -1,5 +1,4 @@
 import javax.swing.*;
-import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.plaf.FontUIResource;
@@ -11,6 +10,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.UUID;
 
 public class HomeScreen extends JFrame {
     private JPanel contentPane;
@@ -24,6 +24,7 @@ public class HomeScreen extends JFrame {
     private JPanel calendarContentPane;
     private JPanel calendarContainer;
     private JPanel weekPanel;
+    private JButton addSharedEvent;
 
     private User user;
     private CarPoolCalendar calendar;
@@ -49,6 +50,35 @@ public class HomeScreen extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 addEvent();
+            }
+        });
+
+        addSharedEvent.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String input = JOptionPane.showInputDialog(null,
+                        "Please enter the Event ID (UUID):",
+                        "Enter Event ID",
+                        JOptionPane.QUESTION_MESSAGE);
+
+                try {
+                    UUID id = UUID.fromString(input);
+                    JOptionPane.showMessageDialog(null,
+                            "The Event ID is valid! Event added to Calendar.",
+                            "Success",
+                            JOptionPane.INFORMATION_MESSAGE);
+                } catch (IllegalArgumentException error) {
+                    System.out.println("Incorrect Event ID format");
+                    JOptionPane.showMessageDialog(null,
+                            "Invalid UUID format. Please try again.",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+                Event event = DBM.getEventById(UUID.fromString(input));
+                if (event != null) {
+                    DBM.saveEvent(event);
+                }
+                initCalendar(LocalDate.now().getYear(), LocalDate.now().getMonthValue());
             }
         });
     }
@@ -115,6 +145,7 @@ public class HomeScreen extends JFrame {
         // Set date label
         dateLabel.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy")));
 
+        pack();
         revalidate();
         repaint();
     }
@@ -174,6 +205,9 @@ public class HomeScreen extends JFrame {
         addEventButton = new JButton();
         addEventButton.setText("Add Event");
         jButtonContainer.add(addEventButton, BorderLayout.CENTER);
+        addSharedEvent = new JButton();
+        addSharedEvent.setText("Add Shared Event");
+        jButtonContainer.add(addSharedEvent, BorderLayout.NORTH);
         dateLabel = new JLabel();
         Font dateLabelFont = this.$$$getFont$$$(null, -1, 16, dateLabel.getFont());
         if (dateLabelFont != null) dateLabel.setFont(dateLabelFont);

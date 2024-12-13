@@ -1,4 +1,6 @@
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.plaf.FontUIResource;
 import javax.swing.text.StyleContext;
 import java.awt.*;
@@ -31,6 +33,8 @@ public class EditEventScreen extends JFrame {
     private JButton cancelButton;
     private JButton saveButton;
     private JPanel controlButtonsContainer;
+    private JLabel basicStatusLabel;
+    private JLabel statusLabel;
 
     private CarPoolCalendar calendar;
     private User user;
@@ -51,6 +55,7 @@ public class EditEventScreen extends JFrame {
 
         initButtons(false);
         initInfo();
+        updateStatus();
 
         pack();
         setVisible(true);
@@ -67,6 +72,7 @@ public class EditEventScreen extends JFrame {
 
         initInfoEditMode(event);
         initButtons(true);
+        updateStatus();
 
         pack();
         setVisible(true);
@@ -82,23 +88,37 @@ public class EditEventScreen extends JFrame {
         event.getRiders().forEach(riderModel::addElement);
         event.getDrivers().forEach(driverModel::addElement);
         for (Rider rider : user.getRiders()) {
-          if (!event.getRiders().contains(rider)) {
-              riderModel.addElement(rider);
+            if (!event.getRiders().contains(rider)) {
+                riderModel.addElement(rider);
 
-          }
+            }
         }
         for (Driver driver : user.getDrivers()) {
             if (!event.getDrivers().contains(driver)) {
-              driverModel.addElement(driver);
+                driverModel.addElement(driver);
             }
         }
 
         // I'm not entirely sure what a model is
         // But I do know that it contains a list of drivers and riders
         // this just sets both JLists to display the correct model
-        // TODO: It still doesn't display. fix it!
         driversList.setModel(driverModel);
         ridersList.setModel(riderModel);
+
+
+        // Enable Toggle Selection Model
+        driversList.setSelectionModel(new ToggleSelectionModel());
+        ridersList.setSelectionModel(new ToggleSelectionModel());
+
+        // Select all previously selected items
+        for (Rider rider : event.getRiders()) {
+            ridersList.setSelectedIndex(riderModel.indexOf(rider));
+        }
+        for (Driver driver : event.getDrivers()) {
+            driversList.setSelectedIndex(driverModel.indexOf(driver));
+        }
+
+        updateStatus();
     }
 
     private void initInfo() {
@@ -113,6 +133,11 @@ public class EditEventScreen extends JFrame {
         driversList.setModel(driverModel);
         ridersList.setModel(riderModel);
 
+        // Enable Toggle Selection Model
+        driversList.setSelectionModel(new ToggleSelectionModel());
+        ridersList.setSelectionModel(new ToggleSelectionModel());
+
+        updateStatus();
     }
 
     private void initButtons(boolean editMode) {
@@ -154,6 +179,7 @@ public class EditEventScreen extends JFrame {
                     JOptionPane.showMessageDialog(null, "No name was entered.",
                             "Input Cancelled", JOptionPane.WARNING_MESSAGE);
                 }
+                updateStatus();
                 pack();
             }
         });
@@ -166,6 +192,7 @@ public class EditEventScreen extends JFrame {
                 if (driver != null) {
                     driverModel.addElement(driver);
                 }
+                updateStatus();
                 pack();
             }
         });
@@ -191,7 +218,11 @@ public class EditEventScreen extends JFrame {
                                 "Incorrect date format", JOptionPane.ERROR_MESSAGE);
                         return;
                     }
-                    event.setParentCalendarId(user.getCalendarId());
+                    if (editMode) {
+                        event.setParentCalendarId(eventToBeEdited.getParentCalendarId());
+                    } else {
+                        event.setParentCalendarId(user.getCalendarId());
+                    }
                     event.getRiders().addAll(ridersList.getSelectedValuesList());
                     event.getDrivers().addAll(driversList.getSelectedValuesList());
 
@@ -202,8 +233,14 @@ public class EditEventScreen extends JFrame {
                         calendar.addEvent(event);
                     }
 
+                    // Checks if the event is a shared event
+                    // It's shared when the parent calendars don't match
+                    if (!event.getParentCalendarId().equals(calendar.getCalendarId())) {
+                        DBM.saveEvent(event);
+                    } else {
+                        DBM.saveCalendar(calendar);
 
-                    DBM.saveCalendar(calendar);
+                    }
                     dispose();
                     System.out.println("Event created successfully");
                     if (onCompletionCallback != null) {
@@ -213,7 +250,48 @@ public class EditEventScreen extends JFrame {
             }
         });
 
+        driversList.addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                updateStatus();
+                pack();
+            }
+        });
 
+        ridersList.addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                updateStatus();
+            }
+        });
+
+
+    }
+
+    private void updateStatus() {
+        int totalRiders = ridersList.getSelectedValuesList().size();
+
+        int totalCapacity = 0;
+        for (int i = 0; i < driversList.getSelectedValuesList().size(); i++) {
+            totalCapacity += driversList.getSelectedValuesList().get(i).getCarCapacity();
+        }
+
+
+        int difference = totalCapacity - totalRiders;
+
+        if (difference >= 0) {
+            basicStatusLabel.setText("<html><span style='color:green;font-weight:bold;'> Enough drivers! </span></html>");
+            statusLabel.setText("<html><span style='color:green;font-weight:bold;'>" +
+                    "Total Capacity: " + totalCapacity +
+                    ", Total Riders: " + totalRiders +
+                    ", Difference: " + difference + "</span></html>");
+        } else {
+            basicStatusLabel.setText("<html><span style='color:red;font-weight:bold;'> Not enough drivers! </span></html>");
+            statusLabel.setText("<html><span style='color:red;font-weight:bold;'>" +
+                    "Total Capacity: " + totalCapacity +
+                    ", Total Riders: " + totalRiders +
+                    ", Short by: " + Math.abs(difference) + "</span></html>");
+        }
     }
 
     {
@@ -296,6 +374,12 @@ public class EditEventScreen extends JFrame {
         saveButton = new JButton();
         saveButton.setText("Save");
         controlButtonsContainer.add(saveButton, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        basicStatusLabel = new JLabel();
+        basicStatusLabel.setText("Label");
+        contentPane.add(basicStatusLabel, new com.intellij.uiDesigner.core.GridConstraints(0, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        statusLabel = new JLabel();
+        statusLabel.setText("Label");
+        contentPane.add(statusLabel, new com.intellij.uiDesigner.core.GridConstraints(1, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
     }
 
     /**

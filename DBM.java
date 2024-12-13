@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.UUID;
 
@@ -59,12 +60,30 @@ public class DBM {
         try {
             Scanner scanner = new Scanner(file);
             JSONParser parser = new JSONParser();
-            String json = "";
-            while (scanner.hasNextLine()) {json += scanner.nextLine();}
+            StringBuilder json = new StringBuilder();
+            while (scanner.hasNextLine()) {
+                json.append(scanner.nextLine());}
             scanner.close();
 
             try {
-                return CarPoolCalendar.toJavaCalendar((JSONObject) parser.parse(json));
+                CarPoolCalendar cal = CarPoolCalendar.toJavaCalendar((JSONObject) parser.parse(json.toString()));
+                // Add shared events to cal and update them if they are already there
+                ArrayList<UUID> events = new ArrayList<>();
+                cal.getEvents().forEach((e) -> events.add(e.getEventId()));
+                for (UUID sharedEventId : cal.getSharedEventIds()) {
+                    Event eventToBeSaved = getEventById(sharedEventId);
+                    if (eventToBeSaved == null) {
+                        cal.getEvents().remove(events.indexOf(sharedEventId));
+                    } else {
+                        if (events.contains(sharedEventId)) {
+                            cal.getEvents().set(events.indexOf(sharedEventId), eventToBeSaved);
+                        } else {
+                            cal.getEvents().add(eventToBeSaved);
+                        }
+                    }
+
+                }
+                return cal;
             } catch (ParseException e) {
                 System.out.println("Error: Failed to parse calendar file");
             }
@@ -89,8 +108,43 @@ public class DBM {
         return true;
     }
 
+    // True if succeeded, false if failed
+    public static boolean saveEvent(Event event) {
+        CarPoolCalendar cal = DBM.loadCalendar(event.getParentCalendarId());
+        if (cal != null) {
+            cal.editEvent(event);
+            DBM.saveCalendar(cal);
+            return true;
+        }
+        return false;
+    }
+
     public static Event getEventById(UUID id) {
         String[] calendars = new File(path + "calendars").list();
+        for (String fileName : calendars) {
+            try {
+                Scanner scanner = new Scanner(new File(path + "calendars" + File.separatorChar + fileName));
+                JSONParser parser = new JSONParser();
+                StringBuilder json = new StringBuilder();
+                while (scanner.hasNextLine()) {
+                    json.append(scanner.nextLine());}
+                scanner.close();
+
+                try {
+                    CarPoolCalendar cal = CarPoolCalendar.toJavaCalendar((JSONObject) parser.parse(json.toString()));
+                    ArrayList<UUID> eventIds = new ArrayList<>();
+                    cal.getEvents().forEach((e) -> eventIds.add(e.getEventId()));
+                    if (eventIds.contains(id)) {
+                        return cal.getEvents().get(eventIds.indexOf(id));
+                    }
+                } catch (ParseException e) {
+                    System.out.println("Error: Failed to parse calendar file");
+                }
+            } catch (FileNotFoundException e) {
+                System.out.println("Error: Calendar file not found");
+            }
+
+        }
         return null;
     }
 }

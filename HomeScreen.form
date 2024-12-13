@@ -42,6 +42,12 @@
                   <text value="Add Event"/>
                 </properties>
               </component>
+              <component id="1695e" class="javax.swing.JButton" binding="addSharedEvent">
+                <constraints border-constraint="North"/>
+                <properties>
+                  <text value="Add Shared Event"/>
+                </properties>
+              </component>
             </children>
           </grid>
           <component id="18c43" class="javax.swing.JLabel" binding="dateLabel">
