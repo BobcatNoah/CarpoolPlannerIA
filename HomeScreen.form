@@ -47,6 +47,7 @@
           <component id="18c43" class="javax.swing.JLabel" binding="dateLabel">
             <constraints border-constraint="Center"/>
             <properties>
+              <font size="16"/>
               <horizontalAlignment value="0"/>
               <text value="Label"/>
             </properties>

@@ -95,11 +95,7 @@ public class Driver {
 
     @Override
     public String toString() {
-        return
-                "name='" + name + '\'' +
-                ", carCapacity=" + carCapacity +
-                ", transportToEvent=" + transportToEvent +
-                ", transportFromEvent=" + transportFromEvent +
-                ", canPickUpRiders=" + canPickUpRiders;
+        return  name + ", Capacity: " + carCapacity + ", To: " + transportToEvent + ", From: " +
+                transportFromEvent + ", Pick Up: " + canPickUpRiders;
     }
 }

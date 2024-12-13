@@ -34,6 +34,7 @@ public class Event {
         this.riders = new ArrayList<Rider>();
     }
 
+    // This is mainly meant for editing and copying events
     public Event(UUID uuid) {
         this.name = "undefined";
         this.beginDate = null;
@@ -56,9 +57,9 @@ public class Event {
         return eventId;
     }
 
-    //public void setEventId(UUID eventId) {
-        //this.eventId = eventId;
-    //}
+    public void setEventId(UUID eventId) {
+        this.eventId = eventId;
+    }
 
     public UUID getParentCalendarId() {
         return parentCalendarId;

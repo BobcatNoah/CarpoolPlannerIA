@@ -6,6 +6,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Locale;
 
 public class EditEventScreen extends JFrame {
@@ -22,10 +23,10 @@ public class EditEventScreen extends JFrame {
     private JTextField endDateField;
     private JButton setEndDateButton;
     private JLabel driversLabel;
-    private JList driversList;
+    private JList<Driver> driversList;
     private JButton addNewDriverButton;
     private JLabel ridersLabel;
-    private JList ridersList;
+    private JList<Rider> ridersList;
     private JButton addNewRiderButton;
     private JButton cancelButton;
     private JButton saveButton;
@@ -35,36 +36,39 @@ public class EditEventScreen extends JFrame {
     private User user;
     private DefaultListModel<Rider> riderModel = new DefaultListModel<>();
     private DefaultListModel<Driver> driverModel = new DefaultListModel<>();
+    private Runnable onCompletionCallback;
+    private Event eventToBeEdited = null;
 
     // Creates an event when no parameters are passed
-    public EditEventScreen(User user, CarPoolCalendar cal) {
+    public EditEventScreen(User user, CarPoolCalendar cal, Runnable onCompletionCallback) {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setContentPane(contentPane);
-        pack();
 
         this.calendar = cal;
         this.user = user;
+        this.onCompletionCallback = onCompletionCallback;
 
 
         initButtons(false);
         initInfo();
 
-
+        pack();
         setVisible(true);
     }
 
-    public EditEventScreen(User user, CarPoolCalendar cal, Event event) {
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    public EditEventScreen(User user, CarPoolCalendar cal, Event event, Runnable onCompletionCallback) {
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setContentPane(contentPane);
-        pack();
 
         this.calendar = cal;
         this.user = user;
+        this.onCompletionCallback = onCompletionCallback;
+        this.eventToBeEdited = event;
 
         initInfoEditMode(event);
         initButtons(true);
 
-
+        pack();
         setVisible(true);
     }
 
@@ -88,6 +92,13 @@ public class EditEventScreen extends JFrame {
               driverModel.addElement(driver);
             }
         }
+
+        // I'm not entirely sure what a model is
+        // But I do know that it contains a list of drivers and riders
+        // this just sets both JLists to display the correct model
+        // TODO: It still doesn't display. fix it!
+        driversList.setModel(driverModel);
+        ridersList.setModel(riderModel);
     }
 
     private void initInfo() {
@@ -96,6 +107,9 @@ public class EditEventScreen extends JFrame {
         user.getRiders().forEach(riderModel::addElement);
         user.getDrivers().forEach(driverModel::addElement);
 
+        // I'm not entirely sure what a model is
+        // But I do know that it contains a list of drivers and riders
+        // this just sets both JLists to display the correct model
         driversList.setModel(driverModel);
         ridersList.setModel(riderModel);
 
@@ -140,25 +154,43 @@ public class EditEventScreen extends JFrame {
                     JOptionPane.showMessageDialog(null, "No name was entered.",
                             "Input Cancelled", JOptionPane.WARNING_MESSAGE);
                 }
+                pack();
             }
         });
 
         addNewDriverButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                EditDriverScreen driverMenu = new EditDriverScreen();
+                EditDriverScreen driverMenu = new EditDriverScreen(null);
+                Driver driver = driverMenu.showDialog();
+                if (driver != null) {
+                    driverModel.addElement(driver);
+                }
+                pack();
             }
         });
 
+        // TODO: Analyze saving to determine why events don't save properly when renamed. Only happens with names
         saveButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 // Create event from user input
                 if (!nameField.getText().isBlank() && !beginDateField.getText().isBlank() && !endDateField.getText().isBlank()) {
                     Event event = new Event();
+                    if (editMode) {
+                        event = new Event(eventToBeEdited.getEventId());
+                    }
                     event.setName(nameField.getText());
-                    event.setBeginDate(LocalDateTime.parse(beginDateField.getText(), DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
-                    event.setEndDate(LocalDateTime.parse(endDateField.getText(), DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
+                    try {
+                        event.setBeginDate(LocalDateTime.parse(beginDateField.getText(), DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
+                        event.setEndDate(LocalDateTime.parse(endDateField.getText(), DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
+
+                    } catch (DateTimeParseException parseException) {
+                        System.out.println("Failed to parse event date");
+                        JOptionPane.showMessageDialog(null, "Incorrect date format. Please enter correct format.",
+                                "Incorrect date format", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
                     event.setParentCalendarId(user.getCalendarId());
                     event.getRiders().addAll(ridersList.getSelectedValuesList());
                     event.getDrivers().addAll(driversList.getSelectedValuesList());
@@ -174,6 +206,9 @@ public class EditEventScreen extends JFrame {
                     DBM.saveCalendar(calendar);
                     dispose();
                     System.out.println("Event created successfully");
+                    if (onCompletionCallback != null) {
+                        onCompletionCallback.run();
+                    }
                 }
             }
         });

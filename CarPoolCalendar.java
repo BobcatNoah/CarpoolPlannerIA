@@ -53,17 +53,16 @@ public class CarPoolCalendar {
         return calendarId;
     }
 
-    public Event getEventByDate(LocalDate date) {
+    public ArrayList<Event> getEventsByDate(LocalDate date) {
+        ArrayList<Event> eventsTemp = new ArrayList<>();
         for (int i = 0; i < events.size(); i++) {
             // Return an arraylist of events that occur on the date parameter
-            //events.get(i).getBeginDate().isAfter(date.atStartOfDay())
-            // events.get(i).getBeginDate().isBefore(date.plusDays(1).atStartOfDay()
-            // If event starts before the end of day on date and
+            // If event starts before the end of day on the start date and ends after the start of day on end date
             if (events.get(i).getBeginDate().isBefore(date.plusDays(1).atStartOfDay()) && events.get(i).getEndDate().isAfter(date.atStartOfDay()) ) {
-                return events.get(i);
+                eventsTemp.add(events.get(i));
             }
         }
-        return null;
+        return eventsTemp;
     }
 
     public void editEvent(Event event) {
@@ -73,6 +72,7 @@ public class CarPoolCalendar {
                 return;
             }
         }
+        System.out.println("Edit not found");
     }
 
     public JSONObject getJSONOBJ() {

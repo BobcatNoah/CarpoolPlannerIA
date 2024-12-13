@@ -2,10 +2,15 @@ import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.plaf.FontUIResource;
+import javax.swing.text.StyleContext;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Locale;
 
 public class HomeScreen extends JFrame {
     private JPanel contentPane;
@@ -27,7 +32,7 @@ public class HomeScreen extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setContentPane(contentPane);
         pack();
-        setSize(1200, 600);
+        //setSize(1200, 600);
 
         this.user = user;
         this.calendar = DBM.loadCalendar(user.getCalendarId());
@@ -35,6 +40,7 @@ public class HomeScreen extends JFrame {
         initCalendar(LocalDate.now().getYear(), LocalDate.now().getMonthValue());
         initButtons();
 
+        pack();
         setVisible(true);
     }
 
@@ -42,12 +48,7 @@ public class HomeScreen extends JFrame {
         addEventButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Open event creator screen when user click the add event button
-                System.out.println("Event Menu");
-                EditEventScreen createEventScreen = new EditEventScreen(user, calendar);
-
-                // Reload the calendar screen
-                initCalendar(LocalDate.now().getYear(), LocalDate.now().getMonthValue());
+                addEvent();
             }
         });
     }
@@ -57,6 +58,10 @@ public class HomeScreen extends JFrame {
         // when calendar is reloaded
         calendarContainer.removeAll();
         weekPanel.removeAll();
+
+        // Reload user and calendar data
+        user = DBM.loadUser(user.getUsername());
+        calendar = DBM.loadCalendar(calendar.getCalendarId());
 
         calendarContainer.setLayout(new GridLayout(0, 7));
         weekPanel.setLayout(new GridLayout(0, 7));
@@ -78,6 +83,7 @@ public class HomeScreen extends JFrame {
         }
 
         for (int day = 1; day <= daysInMonth; day++) {
+            // dayPanel contains the date and list of events for that day
             JPanel dayPanel = new JPanel();
             dayPanel.setLayout(new BorderLayout());
 
@@ -86,17 +92,49 @@ public class HomeScreen extends JFrame {
             dayNum.setFont(new Font("Arial", Font.BOLD, 14));
             dayNum.setBorder(new EmptyBorder(10, 10, 10, 10));
             dayPanel.add(dayNum, BorderLayout.PAGE_START);
-            Event eventOfDay = calendar.getEventByDate(LocalDate.of(year, month, day));
-            if (eventOfDay != null) {
-                dayPanel.add(new JLabel(eventOfDay.getName(), JLabel.CENTER), BorderLayout.CENTER);
+            // eventsOfDay is necessary because you can only have one item in the center of borderlayout
+            JPanel eventsOfDayPanel = new JPanel(new GridLayout(0, 1));
+            ArrayList<Event> eventsOfDay = calendar.getEventsByDate(LocalDate.of(year, month, day));
+            for (Event event : eventsOfDay) {
+                JButton eventButton = new JButton(event.getName());
+                eventButton.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        addEvent(event);
+                    }
+                });
+                eventsOfDayPanel.add(eventButton);
             }
+            dayPanel.add(eventsOfDayPanel, BorderLayout.CENTER);
+
 
             dayPanel.setBorder(BorderFactory.createLineBorder(Color.lightGray));
             calendarContainer.add(dayPanel);
         }
 
-        calendarContainer.revalidate();
-        calendarContainer.repaint();
+        // Set date label
+        dateLabel.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy")));
+
+        revalidate();
+        repaint();
+    }
+
+    private void addEvent(Event event) {
+        // Similar to the function below
+        // But, I'm passing in the event to be edited
+        // This shows a slightly different menu than creating an event
+        System.out.println("Event Menu");
+        EditEventScreen createEventScreen = new EditEventScreen(user, calendar, event, () -> {
+            initCalendar(LocalDate.now().getYear(), LocalDate.now().getMonthValue());
+        });
+    }
+
+    private void addEvent() {
+        // Open event creator screen when user click the add event button
+        System.out.println("Event Menu");
+        EditEventScreen createEventScreen = new EditEventScreen(user, calendar, () -> {
+            initCalendar(LocalDate.now().getYear(), LocalDate.now().getMonthValue());
+        });
     }
 
 
@@ -137,6 +175,8 @@ public class HomeScreen extends JFrame {
         addEventButton.setText("Add Event");
         jButtonContainer.add(addEventButton, BorderLayout.CENTER);
         dateLabel = new JLabel();
+        Font dateLabelFont = this.$$$getFont$$$(null, -1, 16, dateLabel.getFont());
+        if (dateLabelFont != null) dateLabel.setFont(dateLabelFont);
         dateLabel.setHorizontalAlignment(0);
         dateLabel.setText("Label");
         jMenuBar.add(dateLabel, BorderLayout.CENTER);
@@ -149,6 +189,28 @@ public class HomeScreen extends JFrame {
         calendarContainer = new JPanel();
         calendarContainer.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
         calendarContentPane.add(calendarContainer, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+    }
+
+    /**
+     * @noinspection ALL
+     */
+    private Font $$$getFont$$$(String fontName, int style, int size, Font currentFont) {
+        if (currentFont == null) return null;
+        String resultName;
+        if (fontName == null) {
+            resultName = currentFont.getName();
+        } else {
+            Font testFont = new Font(fontName, Font.PLAIN, 10);
+            if (testFont.canDisplay('a') && testFont.canDisplay('1')) {
+                resultName = fontName;
+            } else {
+                resultName = currentFont.getName();
+            }
+        }
+        Font font = new Font(resultName, style >= 0 ? style : currentFont.getStyle(), size >= 0 ? size : currentFont.getSize());
+        boolean isMac = System.getProperty("os.name", "").toLowerCase(Locale.ENGLISH).startsWith("mac");
+        Font fontWithFallback = isMac ? new Font(font.getFamily(), font.getStyle(), font.getSize()) : new StyleContext().getFont(font.getFamily(), font.getStyle(), font.getSize());
+        return fontWithFallback instanceof FontUIResource ? fontWithFallback : new FontUIResource(fontWithFallback);
     }
 
     /**

@@ -6,57 +6,97 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Locale;
 
-public class EditDriverScreen extends JFrame {
+public class EditDriverScreen extends JDialog {
     private JPanel contentPane;
     private JLabel title;
     private JTextField nameField;
     private JLabel nameLabel;
     private JLabel carCapacityLabel;
     private JTextField carCapacityField;
-    private JComboBox canTransportToEventField;
+    private JComboBox<String> canTransportToEventField;
     private JLabel transportFromEventLabel;
     private JLabel transportToEventLabel;
-    private JComboBox canTransportFromEventField;
+    private JComboBox<String> canTransportFromEventField;
     private JLabel canPickUpRidersLabel;
-    private JComboBox canPickUpRidersField;
+    private JComboBox<String> canPickUpRidersField;
     private JButton cancelButton;
     private JButton saveButton;
     private JPanel controlButtonsContainer;
 
-    public EditDriverScreen() {
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    DefaultComboBoxModel<String> options = new DefaultComboBoxModel<>(new String[]{"true", "false"});
+    DefaultComboBoxModel<String> options2 = new DefaultComboBoxModel<>(new String[]{"true", "false"});
+    DefaultComboBoxModel<String> options3 = new DefaultComboBoxModel<>(new String[]{"true", "false"});
+
+    private Driver result;
+
+    public EditDriverScreen(Frame owner) {
+        super(owner, "Edit Driver", true); // Set modal to true
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setContentPane(contentPane);
         pack();
+        setLocationRelativeTo(owner);
 
         initButtons();
-
-        setVisible(true);
     }
 
-    public EditDriverScreen(Driver driver) {
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    public EditDriverScreen(Frame owner, Driver driver) {
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setContentPane(contentPane);
         pack();
+        setLocationRelativeTo(owner);
 
         initButtonsEditMode();
-
-        setVisible(true);
     }
 
 
     private void initButtons() {
-        canTransportFromEventField = new JComboBox(new String[]{"true", "false"});
+        canTransportFromEventField.setModel(options);
+        canTransportToEventField.setModel(options2);
+        canPickUpRidersField.setModel(options3);
 
         cancelButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 System.out.println("Driver creator cancelled");
+                result = null;
                 dispose();
+            }
+        });
+
+        saveButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Driver driver = new Driver();
+
+                if (!nameField.getText().isEmpty() && isNumeric(carCapacityField.getText())) {
+                    driver.setName(nameField.getText());
+                    driver.setCarCapacity(Integer.parseInt(carCapacityField.getText()));
+                    driver.setTransportFromEvent(Boolean.parseBoolean((String) canTransportFromEventField.getSelectedItem()));
+                    driver.setTransportToEvent(Boolean.parseBoolean((String) canTransportToEventField.getSelectedItem()));
+                    driver.setCanPickUpRiders(Boolean.parseBoolean((String) canPickUpRidersField.getSelectedItem()));
+
+                    result = driver;
+                    dispose();
+                }
             }
         });
     }
 
     private void initButtonsEditMode() {
+    }
+
+    private boolean isNumeric(String str) {
+        try {
+            Integer.parseInt(str);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    public Driver showDialog() {
+        setVisible(true);
+        return result;
     }
 
     {
@@ -145,4 +185,5 @@ public class EditDriverScreen extends JFrame {
     public JComponent $$$getRootComponent$$$() {
         return contentPane;
     }
+
 }
