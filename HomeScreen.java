@@ -49,6 +49,7 @@ public class HomeScreen extends JFrame {
         addEventButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                initCalendar(LocalDate.now().getYear(), LocalDate.now().getMonthValue());
                 addEvent();
             }
         });
@@ -74,9 +75,14 @@ public class HomeScreen extends JFrame {
                             "Error",
                             JOptionPane.ERROR_MESSAGE);
                 }
-                Event event = DBM.getEventById(UUID.fromString(input));
+                UUID id = UUID.fromString(input);
+                Event event = DBM.getEventById(id);
                 if (event != null) {
-                    DBM.saveEvent(event);
+                    // Add the event to user calendar if it isn't already saved
+                    if (!calendar.getSharedEventIds().contains(id)) {
+                        calendar.getSharedEventIds().add(id);
+                        DBM.saveCalendar(calendar);
+                    }
                 }
                 initCalendar(LocalDate.now().getYear(), LocalDate.now().getMonthValue());
             }

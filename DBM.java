@@ -72,12 +72,15 @@ public class DBM {
                 cal.getEvents().forEach((e) -> events.add(e.getEventId()));
                 for (UUID sharedEventId : cal.getSharedEventIds()) {
                     Event eventToBeSaved = getEventById(sharedEventId);
+                    // If event doesn't exist anymore, remove it from the user's calendar
                     if (eventToBeSaved == null) {
                         cal.getEvents().remove(events.indexOf(sharedEventId));
                     } else {
+                        // If event is already in the user's event list, update it
                         if (events.contains(sharedEventId)) {
                             cal.getEvents().set(events.indexOf(sharedEventId), eventToBeSaved);
                         } else {
+                            // Otherwise add the event
                             cal.getEvents().add(eventToBeSaved);
                         }
                     }

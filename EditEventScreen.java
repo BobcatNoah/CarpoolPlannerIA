@@ -35,6 +35,9 @@ public class EditEventScreen extends JFrame {
     private JPanel controlButtonsContainer;
     private JLabel basicStatusLabel;
     private JLabel statusLabel;
+    private JLabel sendLabel;
+    private JTextField sendField;
+    private JButton sendButton;
 
     private CarPoolCalendar calendar;
     private User user;
@@ -203,48 +206,55 @@ public class EditEventScreen extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 // Create event from user input
                 if (!nameField.getText().isBlank() && !beginDateField.getText().isBlank() && !endDateField.getText().isBlank()) {
-                    Event event = new Event();
-                    if (editMode) {
-                        event = new Event(eventToBeEdited.getEventId());
-                    }
-                    event.setName(nameField.getText());
-                    try {
-                        event.setBeginDate(LocalDateTime.parse(beginDateField.getText(), DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
-                        event.setEndDate(LocalDateTime.parse(endDateField.getText(), DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
+                    if (nameField.getText().length() <= 30) {
+                        Event event = new Event();
+                        if (editMode) {
+                            event = new Event(eventToBeEdited.getEventId());
+                        }
+                        event.setName(nameField.getText());
+                        try {
+                            event.setBeginDate(LocalDateTime.parse(beginDateField.getText(), DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
+                            event.setEndDate(LocalDateTime.parse(endDateField.getText(), DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
 
-                    } catch (DateTimeParseException parseException) {
-                        System.out.println("Failed to parse event date");
-                        JOptionPane.showMessageDialog(null, "Incorrect date format. Please enter correct format.",
-                                "Incorrect date format", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                    if (editMode) {
-                        event.setParentCalendarId(eventToBeEdited.getParentCalendarId());
+                        } catch (DateTimeParseException parseException) {
+                            System.out.println("Failed to parse event date");
+                            JOptionPane.showMessageDialog(null, "Incorrect date format. Please enter correct format.",
+                                    "Incorrect date format", JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                        if (editMode) {
+                            event.setParentCalendarId(eventToBeEdited.getParentCalendarId());
+                        } else {
+                            event.setParentCalendarId(user.getCalendarId());
+                        }
+                        event.getRiders().addAll(ridersList.getSelectedValuesList());
+                        event.getDrivers().addAll(driversList.getSelectedValuesList());
+
+                        // Add event to calendar if not editing
+                        if (editMode) {
+                            calendar.editEvent(event);
+                        } else {
+                            calendar.addEvent(event);
+                        }
+
+                        // Checks if the event is a shared event
+                        // It's shared when the parent calendars don't match
+                        if (!event.getParentCalendarId().equals(calendar.getCalendarId())) {
+                            DBM.saveEvent(event);
+                        } else {
+                            DBM.saveCalendar(calendar);
+
+                        }
+                        dispose();
+                        System.out.println("Event created successfully");
+                        if (onCompletionCallback != null) {
+                            onCompletionCallback.run();
+                        }
                     } else {
-                        event.setParentCalendarId(user.getCalendarId());
-                    }
-                    event.getRiders().addAll(ridersList.getSelectedValuesList());
-                    event.getDrivers().addAll(driversList.getSelectedValuesList());
-
-                    // Add event to calendar if not editing
-                    if (editMode) {
-                        calendar.editEvent(event);
-                    } else {
-                        calendar.addEvent(event);
-                    }
-
-                    // Checks if the event is a shared event
-                    // It's shared when the parent calendars don't match
-                    if (!event.getParentCalendarId().equals(calendar.getCalendarId())) {
-                        DBM.saveEvent(event);
-                    } else {
-                        DBM.saveCalendar(calendar);
-
-                    }
-                    dispose();
-                    System.out.println("Event created successfully");
-                    if (onCompletionCallback != null) {
-                        onCompletionCallback.run();
+                        JOptionPane.showMessageDialog(null,
+                                "Event name must be less than 31 characters.",
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE);
                     }
                 }
             }
@@ -262,6 +272,41 @@ public class EditEventScreen extends JFrame {
             @Override
             public void valueChanged(ListSelectionEvent e) {
                 updateStatus();
+            }
+        });
+
+        sendButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Only let the user send the event if it's been saved
+                // This means the user must be editing the event, rather than creating a new one
+                if (eventToBeEdited != null) {
+                    if (DBM.userExists(sendField.getText())) {
+                        System.out.println("Account found");
+
+                        User tempUser = DBM.loadUser(sendField.getText());
+                        CarPoolCalendar tempCal = DBM.loadCalendar(tempUser.getCalendarId());
+                        tempCal.getSharedEventIds().add(eventToBeEdited.getEventId());
+
+                        DBM.saveCalendar(tempCal);
+                        System.out.println("The username is valid! Event successfully sent");
+                        JOptionPane.showMessageDialog(null,
+                                "The username is valid! Event sent to " + sendField.getText() + ".",
+                                "Success",
+                                JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(null,
+                                "Username doesn't exist. Please try again.",
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(null,
+                            "Please save the event, then send it",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
             }
         });
 
@@ -310,7 +355,7 @@ public class EditEventScreen extends JFrame {
      */
     private void $$$setupUI$$$() {
         contentPane = new JPanel();
-        contentPane.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(7, 3, new Insets(10, 10, 10, 10), -1, -1));
+        contentPane.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(8, 3, new Insets(10, 10, 10, 10), -1, -1));
         title = new JLabel();
         Font titleFont = this.$$$getFont$$$(null, Font.BOLD, 20, title.getFont());
         if (titleFont != null) title.setFont(titleFont);
@@ -380,6 +425,14 @@ public class EditEventScreen extends JFrame {
         statusLabel = new JLabel();
         statusLabel.setText("Label");
         contentPane.add(statusLabel, new com.intellij.uiDesigner.core.GridConstraints(1, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        sendLabel = new JLabel();
+        sendLabel.setText("Send to Username:");
+        contentPane.add(sendLabel, new com.intellij.uiDesigner.core.GridConstraints(7, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        sendField = new JTextField();
+        contentPane.add(sendField, new com.intellij.uiDesigner.core.GridConstraints(7, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        sendButton = new JButton();
+        sendButton.setText("Send");
+        contentPane.add(sendButton, new com.intellij.uiDesigner.core.GridConstraints(7, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
     }
 
     /**
