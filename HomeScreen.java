@@ -6,11 +6,12 @@ import javax.swing.text.StyleContext;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Locale;
-import java.util.UUID;
 
 public class HomeScreen extends JFrame {
     private JPanel contentPane;
@@ -24,10 +25,15 @@ public class HomeScreen extends JFrame {
     private JPanel calendarContentPane;
     private JPanel calendarContainer;
     private JPanel weekPanel;
-    private JButton addSharedEvent;
+    private JPanel monthPicker;
+    private JButton prevMonth;
+    private JButton nextMonth;
 
     private User user;
     private CarPoolCalendar calendar;
+    // An index in the list of groupOptions
+    private int selectedGroup;
+    private LocalDate dateView;
 
     public HomeScreen(User user) {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -37,8 +43,11 @@ public class HomeScreen extends JFrame {
 
         this.user = user;
         this.calendar = DBM.loadCalendar(user.getCalendarId());
+        this.dateView = LocalDate.now();
+        // Sets the selected group to the default (personal calendar), which is the last index of the group list + 1
+        this.selectedGroup = user.getGroups().size();
 
-        initCalendar(LocalDate.now().getYear(), LocalDate.now().getMonthValue());
+        initCalendar(dateView.getYear(), dateView.getMonthValue());
         initButtons();
 
         pack();
@@ -49,44 +58,143 @@ public class HomeScreen extends JFrame {
         addEventButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                initCalendar(LocalDate.now().getYear(), LocalDate.now().getMonthValue());
                 addEvent();
+                // Because the event editor screen is asynchronous, initCalendar cannot be called this way
+                // because it would run before the user finishes editing
+                //initCalendar(dateView.getYear(), dateView.getMonthValue());
             }
         });
 
-        addSharedEvent.addActionListener(new ActionListener() {
+        prevMonth.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String input = JOptionPane.showInputDialog(null,
-                        "Please enter the Event ID (UUID):",
-                        "Enter Event ID",
-                        JOptionPane.QUESTION_MESSAGE);
-
-                try {
-                    UUID id = UUID.fromString(input);
-                    JOptionPane.showMessageDialog(null,
-                            "The Event ID is valid! Event added to Calendar.",
-                            "Success",
-                            JOptionPane.INFORMATION_MESSAGE);
-                } catch (IllegalArgumentException error) {
-                    System.out.println("Incorrect Event ID format");
-                    JOptionPane.showMessageDialog(null,
-                            "Invalid UUID format. Please try again.",
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE);
-                }
-                UUID id = UUID.fromString(input);
-                Event event = DBM.getEventById(id);
-                if (event != null) {
-                    // Add the event to user calendar if it isn't already saved
-                    if (!calendar.getSharedEventIds().contains(id)) {
-                        calendar.getSharedEventIds().add(id);
-                        DBM.saveCalendar(calendar);
-                    }
-                }
-                initCalendar(LocalDate.now().getYear(), LocalDate.now().getMonthValue());
+                dateView = dateView.minusMonths(1);
+                initCalendar(dateView.getYear(), dateView.getMonthValue());
             }
         });
+
+        nextMonth.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dateView = dateView.plusMonths(1);
+                initCalendar(dateView.getYear(), dateView.getMonthValue());
+            }
+        });
+
+        groupOptions.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JComboBox cb = (JComboBox) e.getSource();
+                if (cb.getSelectedIndex() > -1) {
+                    selectedGroup = cb.getSelectedIndex();
+                    initCalendar(dateView.getYear(), dateView.getMonthValue());
+                }
+            }
+        });
+
+        addGroupButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                showGroupMenu();
+            }
+        });
+
+        settingsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                initCalendar(dateView.getYear(), dateView.getMonthValue());
+            }
+        });
+
+    }
+
+    private void showGroupMenu() {
+        String[] options = {"Join a Group", "Create a group"};
+        int choice = JOptionPane.showOptionDialog(
+                this,
+                "Would you like to join or create a group?",
+                "Group Options",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
+
+        if (choice == 0) {
+            joinGroup();
+        } else if (choice == 1) {
+            createGroup();
+        }
+    }
+
+    private void joinGroup() {
+        String groupName = JOptionPane.showInputDialog(this, "Enter the group name:");
+        if (groupName == null || groupName.trim().isEmpty()) return;
+
+        // Check if group already exists
+        if (!DBM.groupExists(groupName)) {
+            JOptionPane.showMessageDialog(this, "This group does not exists. Try creating it.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String password = JOptionPane.showInputDialog(this, "Enter the group password:");
+        if (password == null || password.trim().isEmpty()) return;
+
+        Group group = DBM.loadGroup(groupName);
+        if (group.getPassword().equals(password)) {
+            JOptionPane.showMessageDialog(this, "Correct password for group: " + groupName);
+            if (user.getGroups().contains(groupName)) {
+                JOptionPane.showMessageDialog(this, "You have already joined group: " + groupName);
+            } else {
+                user.getGroups().add(groupName);
+                group.getUsers().add(user.getUsername());
+                selectedGroup = 0;
+                DBM.saveGroup(group);
+                if (DBM.saveUser(user)) {
+                    JOptionPane.showMessageDialog(this, "Successfully joined group: " + groupName);
+                    initCalendar(dateView.getYear(), dateView.getMonthValue());
+                } else {
+                    JOptionPane.showMessageDialog(this, "Failed to join group. Try again.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }
+    }
+
+    private void createGroup() {
+        String groupName = JOptionPane.showInputDialog(this, "Enter a name for the new group:");
+        if (groupName == null || groupName.trim().isEmpty()) return;
+
+        if (DBM.groupExists(groupName)) {
+            JOptionPane.showMessageDialog(this, "A group with this name already exists. Please choose a different name.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String password = JOptionPane.showInputDialog(this, "Set a password for the group:");
+        if (password == null || password.trim().isEmpty()) return;
+
+        // Create group and add a new calendar to it
+        Group group = new Group();
+        CarPoolCalendar cal = new CarPoolCalendar(groupName);
+        DBM.saveCalendar(cal);
+
+        group.setName(groupName);
+        group.setPassword(password);
+        group.setCalendarId(cal.getCalendarId());
+        group.getUsers().add(user.getUsername());
+        if (DBM.saveGroup(group)) {
+            JOptionPane.showMessageDialog(this, "Successfully create the group: " + groupName);
+        } else {
+            JOptionPane.showMessageDialog(this, "Failed to create the group. Try again.");
+        }
+
+        // Add the group to the user
+        user.getGroups().add(groupName);
+        DBM.saveUser(user);
+        selectedGroup = 0;
+
+        // reload homescreen
+        initCalendar(dateView.getYear(), dateView.getMonthValue());
     }
 
     private void initCalendar(int year, int month) {
@@ -97,7 +205,14 @@ public class HomeScreen extends JFrame {
 
         // Reload user and calendar data
         user = DBM.loadUser(user.getUsername());
-        calendar = DBM.loadCalendar(calendar.getCalendarId());
+        // If the default personal calendar, which is the last index of the group list + 1, is selected, load it
+        if (selectedGroup == user.getGroups().size()) {
+            calendar = DBM.loadCalendar(user.getCalendarId());
+        } else {
+            // Load calender from the selected group
+            calendar = DBM.loadCalendar(DBM.loadGroup(user.getGroups().get(selectedGroup)).getCalendarId());
+
+        }
 
         calendarContainer.setLayout(new GridLayout(0, 7));
         weekPanel.setLayout(new GridLayout(0, 7));
@@ -149,7 +264,30 @@ public class HomeScreen extends JFrame {
         }
 
         // Set date label
-        dateLabel.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy")));
+        dateLabel.setText(dateView.format(DateTimeFormatter.ofPattern("MM/dd/yyyy")));
+
+        // Update group options
+        ArrayList<String> temp = new ArrayList<>(user.getGroups());
+        temp.add("My Calendar");
+
+        // TODO: This is a patch job fix for erratic behavior when updating the groupOptions. I simply remove the listener and add it back after the options have been updated
+        // Apparently this a permanent fix
+        ActionListener[] listeners = groupOptions.getActionListeners();
+        for (ActionListener listener : listeners) {
+            groupOptions.removeActionListener(listener);
+        }
+
+        // Clear existing items to prevent duplicates
+        groupOptions.removeAllItems();
+        for (String group : temp) {
+            groupOptions.addItem(group);
+        }
+        groupOptions.setSelectedIndex(selectedGroup);
+
+
+        for (ActionListener listener : listeners) {
+            groupOptions.addActionListener(listener);
+        }
 
         pack();
         revalidate();
@@ -162,7 +300,7 @@ public class HomeScreen extends JFrame {
         // This shows a slightly different menu than creating an event
         System.out.println("Event Menu");
         EditEventScreen createEventScreen = new EditEventScreen(user, calendar, event, () -> {
-            initCalendar(LocalDate.now().getYear(), LocalDate.now().getMonthValue());
+            initCalendar(dateView.getYear(), dateView.getMonthValue());
         });
     }
 
@@ -170,7 +308,7 @@ public class HomeScreen extends JFrame {
         // Open event creator screen when user click the add event button
         System.out.println("Event Menu");
         EditEventScreen createEventScreen = new EditEventScreen(user, calendar, () -> {
-            initCalendar(LocalDate.now().getYear(), LocalDate.now().getMonthValue());
+            initCalendar(dateView.getYear(), dateView.getMonthValue());
         });
     }
 
@@ -211,15 +349,22 @@ public class HomeScreen extends JFrame {
         addEventButton = new JButton();
         addEventButton.setText("Add Event");
         jButtonContainer.add(addEventButton, BorderLayout.CENTER);
-        addSharedEvent = new JButton();
-        addSharedEvent.setText("Add Shared Event");
-        jButtonContainer.add(addSharedEvent, BorderLayout.NORTH);
+        monthPicker = new JPanel();
+        monthPicker.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
+        jMenuBar.add(monthPicker, BorderLayout.CENTER);
+        prevMonth = new JButton();
+        prevMonth.setText("<");
+        monthPicker.add(prevMonth);
         dateLabel = new JLabel();
-        Font dateLabelFont = this.$$$getFont$$$(null, -1, 16, dateLabel.getFont());
+        Font dateLabelFont = this.$$$getFont$$$(null, Font.BOLD, 14, dateLabel.getFont());
         if (dateLabelFont != null) dateLabel.setFont(dateLabelFont);
         dateLabel.setHorizontalAlignment(0);
+        dateLabel.setHorizontalTextPosition(0);
         dateLabel.setText("Label");
-        jMenuBar.add(dateLabel, BorderLayout.CENTER);
+        monthPicker.add(dateLabel);
+        nextMonth = new JButton();
+        nextMonth.setText(">");
+        monthPicker.add(nextMonth);
         calendarContentPane = new JPanel();
         calendarContentPane.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(2, 1, new Insets(0, 0, 0, 0), -1, -1));
         contentPane.add(calendarContentPane, BorderLayout.CENTER);

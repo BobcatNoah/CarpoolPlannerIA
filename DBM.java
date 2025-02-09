@@ -112,7 +112,8 @@ public class DBM {
     }
 
     // True if succeeded, false if failed
-    public static boolean saveEvent(Event event) {
+    // TODO: change this to edit event
+    public static boolean editEvent(Event event) {
         CarPoolCalendar cal = DBM.loadCalendar(event.getParentCalendarId());
         if (cal != null) {
             cal.editEvent(event);
@@ -149,5 +150,46 @@ public class DBM {
 
         }
         return null;
+    }
+
+    public static Group loadGroup(String group) {
+        try {
+            Scanner scanner = new Scanner(new File(path + "groups" + File.separatorChar + group));
+            JSONParser parser = new JSONParser();
+            String json = "";
+            while(scanner.hasNextLine()) {json += scanner.nextLine();}
+            scanner.close();
+
+            try {
+                JSONObject obj = (JSONObject) parser.parse(json);
+                return Group.toJavaGroup(obj);
+            } catch (ParseException e) {
+                System.out.println("Error: Failed to parse group file");
+                return null;
+            }
+        } catch (FileNotFoundException e) {
+            System.out.println("Error: Group not found");
+        }
+        return null;
+    }
+
+    public static boolean saveGroup(Group group) {
+        File file = new File(path + "groups" + File.separatorChar + group.getName());
+        try {
+            //file.createNewFile();
+            FileWriter writer = new FileWriter(file);
+            JSONObject obj = group.getJSONOBJ();
+
+            writer.write(obj.toJSONString());
+            writer.close();
+        } catch (IOException e) {
+            System.out.println("Failed to save group file");
+            return false;
+        }
+        return true;
+    }
+
+    public static boolean groupExists(String name) {
+        return new File(path + "groups" + File.separatorChar + name).exists();
     }
 }

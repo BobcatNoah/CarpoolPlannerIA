@@ -10,14 +10,18 @@ public class User {
     private String username;
     private String password;
     private UUID calendarId;
-    // these are for autofill
+    private ArrayList<String> groups;
+    // these were for autofill
     // so that the user doesn't need to enter the info for every event
+    // However, this feature is inaccessible to the user to simply and make the application more user friendly
     private ArrayList<Driver> drivers;
     private ArrayList<Rider> riders;
+
 
     public User(String username, String password) {
         this.username = username;
         this.password = password;
+        this.groups = new ArrayList<>();
         this.drivers = new ArrayList<>();
         this.riders = new ArrayList<>();
         this.calendarId = null;
@@ -47,6 +51,10 @@ public class User {
         return riders;
     }
 
+    public ArrayList<String> getGroups() {
+        return groups;
+    }
+
     public JSONObject getJSONOBJ() {
         JSONObject obj = new JSONObject();
 
@@ -68,8 +76,12 @@ public class User {
         for (Rider rider : riders) {
             jsonRiders.add(rider.getJSONOBJ());
         }
+        JSONArray jsonGroups = new JSONArray();
+        jsonGroups.addAll(groups);
+
         obj.put("drivers", jsonDrivers);
         obj.put("riders", jsonRiders);
+        obj.put("groups", jsonGroups);
 
         return obj;
     }
@@ -87,6 +99,9 @@ public class User {
         }
         for (Object rider : (JSONArray) obj.get("riders")) {
             user.getRiders().add(Rider.toJavaRider((JSONObject) rider));
+        }
+        for (Object group : (JSONArray) obj.get("groups")) {
+            user.getGroups().add((String) group);
         }
 
         return user;

@@ -1,3 +1,6 @@
+import com.github.lgooddatepicker.components.DatePicker;
+import com.github.lgooddatepicker.components.DateTimePicker;
+
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -16,13 +19,10 @@ public class EditEventScreen extends JFrame {
     private JTextField nameField;
     private JLabel title;
     private JLabel nameLabel;
-    private JTextField beginDateField;
     private JButton setBeginDateButton;
     private JLabel beginDateLabel;
-    private JLabel beginDateFormatLabel;
     private JPanel beginDateLabelContainer;
     private JPanel endDateLabelContainer;
-    private JTextField endDateField;
     private JButton setEndDateButton;
     private JLabel driversLabel;
     private JList<Driver> driversList;
@@ -38,6 +38,8 @@ public class EditEventScreen extends JFrame {
     private JLabel sendLabel;
     private JTextField sendField;
     private JButton sendButton;
+    private DateTimePicker beginDatePicker;
+    private DateTimePicker endDatePicker;
 
     private CarPoolCalendar calendar;
     private User user;
@@ -45,6 +47,7 @@ public class EditEventScreen extends JFrame {
     private DefaultListModel<Driver> driverModel = new DefaultListModel<>();
     private Runnable onCompletionCallback;
     private Event eventToBeEdited = null;
+
 
     // Creates an event when no parameters are passed
     public EditEventScreen(User user, CarPoolCalendar cal, Runnable onCompletionCallback) {
@@ -84,8 +87,9 @@ public class EditEventScreen extends JFrame {
     private void initInfoEditMode(Event event) {
         title.setText("Edit Event");
         nameField.setText(event.getName());
-        beginDateField.setText(event.getBeginDate().format(DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
-        endDateField.setText(event.getEndDate().format(DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
+        // TODO: beginDateField.setText(event.getBeginDate().format(DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
+        beginDatePicker.setDateTimePermissive(event.getBeginDate());
+        endDatePicker.setDateTimePermissive(event.getEndDate());
 
         // When editing event select the already selected riders and drivers
         event.getRiders().forEach(riderModel::addElement);
@@ -154,14 +158,15 @@ public class EditEventScreen extends JFrame {
         setBeginDateButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                beginDateField.setText(LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
+                beginDatePicker.setDateTimePermissive(LocalDateTime.now());
+
             }
         });
 
         setEndDateButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                endDateField.setText(LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
+                endDatePicker.setDateTimePermissive(LocalDateTime.now());
             }
         });
 
@@ -205,56 +210,65 @@ public class EditEventScreen extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 // Create event from user input
-                if (!nameField.getText().isBlank() && !beginDateField.getText().isBlank() && !endDateField.getText().isBlank()) {
-                    if (nameField.getText().length() <= 30) {
-                        Event event = new Event();
-                        if (editMode) {
-                            event = new Event(eventToBeEdited.getEventId());
-                        }
-                        event.setName(nameField.getText());
-                        try {
-                            event.setBeginDate(LocalDateTime.parse(beginDateField.getText(), DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
-                            event.setEndDate(LocalDateTime.parse(endDateField.getText(), DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm")));
+                if (!nameField.getText().isBlank() && beginDatePicker.getDateTimePermissive() != null && endDatePicker.getDateTimePermissive() != null) {
+                    // End date must be after begin data
+                    if (beginDatePicker.getDateTimePermissive().isBefore(endDatePicker.getDateTimePermissive())) {
+                        // Limit the length of the event name
+                        if (nameField.getText().length() <= 30) {
+                            Event event = new Event();
+                            if (editMode) {
+                                event = new Event(eventToBeEdited.getEventId());
+                            }
+                            event.setName(nameField.getText());
+                            try {
+                                event.setBeginDate(beginDatePicker.getDateTimePermissive());
+                                event.setEndDate(endDatePicker.getDateTimePermissive());
 
-                        } catch (DateTimeParseException parseException) {
-                            System.out.println("Failed to parse event date");
-                            JOptionPane.showMessageDialog(null, "Incorrect date format. Please enter correct format.",
-                                    "Incorrect date format", JOptionPane.ERROR_MESSAGE);
-                            return;
-                        }
-                        if (editMode) {
-                            event.setParentCalendarId(eventToBeEdited.getParentCalendarId());
+                            } catch (DateTimeParseException parseException) {
+                                System.out.println("Failed to parse event date");
+                                JOptionPane.showMessageDialog(null, "Incorrect date format. Please enter correct format.",
+                                        "Incorrect date format", JOptionPane.ERROR_MESSAGE);
+                                return;
+                            }
+                            if (editMode) {
+                                event.setParentCalendarId(eventToBeEdited.getParentCalendarId());
+                            } else {
+                                event.setParentCalendarId(calendar.getCalendarId());
+                            }
+                            event.getRiders().addAll(ridersList.getSelectedValuesList());
+                            event.getDrivers().addAll(driversList.getSelectedValuesList());
+
+                            // Add event to calendar if not editing
+                            if (editMode) {
+                                calendar.editEvent(event);
+                            } else {
+                                calendar.addEvent(event);
+                            }
+
+                            // TODO: Explain this code and figure out what it does
+                            // Checks if the event was created by yourself
+                            // otherwise it's a shared event
+                            // It's shared when the parent calendars don't match
+                            if (event.getParentCalendarId().equals(calendar.getCalendarId())) {
+                                // Saves you personal calendar, doesn't matter if it's a new or edited event
+                                DBM.saveCalendar(calendar);
+                            } else {
+                                // If it's a shared event, then it means you must be editing it
+                                // and since you aren't the owner of the event, the original calendar must be edited
+                                // which the DBM editEvent function edits the event based on it's parentCalenderId
+                                DBM.editEvent(event);
+                            }
+                            dispose();
+                            System.out.println("Event created successfully");
+                            if (onCompletionCallback != null) {
+                                onCompletionCallback.run();
+                            }
                         } else {
-                            event.setParentCalendarId(user.getCalendarId());
+                            JOptionPane.showMessageDialog(null,
+                                    "Event name must be less than 31 characters.",
+                                    "Error",
+                                    JOptionPane.ERROR_MESSAGE);
                         }
-                        event.getRiders().addAll(ridersList.getSelectedValuesList());
-                        event.getDrivers().addAll(driversList.getSelectedValuesList());
-
-                        // Add event to calendar if not editing
-                        if (editMode) {
-                            calendar.editEvent(event);
-                        } else {
-                            calendar.addEvent(event);
-                        }
-
-                        // Checks if the event is a shared event
-                        // It's shared when the parent calendars don't match
-                        if (!event.getParentCalendarId().equals(calendar.getCalendarId())) {
-                            DBM.saveEvent(event);
-                        } else {
-                            DBM.saveCalendar(calendar);
-
-                        }
-                        dispose();
-                        System.out.println("Event created successfully");
-                        if (onCompletionCallback != null) {
-                            onCompletionCallback.run();
-                        }
-                    } else {
-                        JOptionPane.showMessageDialog(null,
-                                "Event name must be less than 31 characters.",
-                                "Error",
-                                JOptionPane.ERROR_MESSAGE);
                     }
                 }
             }
@@ -366,31 +380,21 @@ public class EditEventScreen extends JFrame {
         contentPane.add(nameLabel, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         nameField = new JTextField();
         contentPane.add(nameField, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
-        beginDateField = new JTextField();
-        contentPane.add(beginDateField, new com.intellij.uiDesigner.core.GridConstraints(2, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         setBeginDateButton = new JButton();
         setBeginDateButton.setText("Set Date Now");
         contentPane.add(setBeginDateButton, new com.intellij.uiDesigner.core.GridConstraints(2, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         beginDateLabelContainer = new JPanel();
-        beginDateLabelContainer.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(2, 1, new Insets(0, 0, 0, 0), -1, -1));
+        beginDateLabelContainer.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
         contentPane.add(beginDateLabelContainer, new com.intellij.uiDesigner.core.GridConstraints(2, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         beginDateLabel = new JLabel();
         beginDateLabel.setText("Start Date:");
         beginDateLabelContainer.add(beginDateLabel, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        beginDateFormatLabel = new JLabel();
-        beginDateFormatLabel.setText("(MM/DD/YYYY:HH:mm)");
-        beginDateLabelContainer.add(beginDateFormatLabel, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         endDateLabelContainer = new JPanel();
-        endDateLabelContainer.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(2, 1, new Insets(0, 0, 0, 0), -1, -1));
+        endDateLabelContainer.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
         contentPane.add(endDateLabelContainer, new com.intellij.uiDesigner.core.GridConstraints(3, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JLabel label1 = new JLabel();
         label1.setText("End Date:");
         endDateLabelContainer.add(label1, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        final JLabel label2 = new JLabel();
-        label2.setText("(MM/DD/YYY:HH:mm)");
-        endDateLabelContainer.add(label2, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        endDateField = new JTextField();
-        contentPane.add(endDateField, new com.intellij.uiDesigner.core.GridConstraints(3, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         setEndDateButton = new JButton();
         setEndDateButton.setText("Set Date Now");
         contentPane.add(setEndDateButton, new com.intellij.uiDesigner.core.GridConstraints(3, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
@@ -433,6 +437,10 @@ public class EditEventScreen extends JFrame {
         sendButton = new JButton();
         sendButton.setText("Send");
         contentPane.add(sendButton, new com.intellij.uiDesigner.core.GridConstraints(7, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        beginDatePicker = new DateTimePicker();
+        contentPane.add(beginDatePicker, new com.intellij.uiDesigner.core.GridConstraints(2, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        endDatePicker = new DateTimePicker();
+        contentPane.add(endDatePicker, new com.intellij.uiDesigner.core.GridConstraints(3, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
     }
 
     /**
