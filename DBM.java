@@ -71,9 +71,10 @@ public class DBM {
                 ArrayList<UUID> events = new ArrayList<>();
                 cal.getEvents().forEach((e) -> events.add(e.getEventId()));
                 for (UUID sharedEventId : cal.getSharedEventIds()) {
+                    // Log
                     Event eventToBeSaved = getEventById(sharedEventId);
                     // If event doesn't exist anymore, remove it from the user's calendar
-                    if (eventToBeSaved == null) {
+                    if (eventToBeSaved == null ) {
                         cal.getEvents().remove(events.indexOf(sharedEventId));
                     } else {
                         // If event is already in the user's event list, update it
@@ -112,7 +113,8 @@ public class DBM {
     }
 
     // True if succeeded, false if failed
-    // TODO: change this to edit event
+    // Takes an event as a parameter, and updates the event from its parent calendar
+    // This is mainly user edits an event that was shared with the user
     public static boolean editEvent(Event event) {
         CarPoolCalendar cal = DBM.loadCalendar(event.getParentCalendarId());
         if (cal != null) {
@@ -192,4 +194,5 @@ public class DBM {
     public static boolean groupExists(String name) {
         return new File(path + "groups" + File.separatorChar + name).exists();
     }
+
 }

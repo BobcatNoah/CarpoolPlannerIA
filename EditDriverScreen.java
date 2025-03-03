@@ -22,6 +22,7 @@ public class EditDriverScreen extends JDialog {
     private JButton cancelButton;
     private JButton saveButton;
     private JPanel controlButtonsContainer;
+    private JButton helpButton;
 
     DefaultComboBoxModel<String> options = new DefaultComboBoxModel<>(new String[]{"true", "false"});
     DefaultComboBoxModel<String> options2 = new DefaultComboBoxModel<>(new String[]{"true", "false"});
@@ -60,6 +61,13 @@ public class EditDriverScreen extends JDialog {
                 System.out.println("Driver creator cancelled");
                 result = null;
                 dispose();
+            }
+        });
+
+        helpButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JOptionPane.showMessageDialog(null, "When \"Can Pick Up Riders\" is false, \nyou are saying that the riders have to go to the driver, \nrather than the driver picking each rider up from their house", "Help", JOptionPane.INFORMATION_MESSAGE);
             }
         });
 
@@ -155,6 +163,10 @@ public class EditDriverScreen extends JDialog {
         saveButton = new JButton();
         saveButton.setText("Save");
         controlButtonsContainer.add(saveButton, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        helpButton = new JButton();
+        helpButton.setHorizontalAlignment(0);
+        helpButton.setText("?");
+        contentPane.add(helpButton, new com.intellij.uiDesigner.core.GridConstraints(6, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
     }
 
     /**

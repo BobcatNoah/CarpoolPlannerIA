@@ -53,11 +53,11 @@ public class CarPoolCalendar {
         return calendarId;
     }
 
+    // Returns an arraylist of events that occur on the date parameter
     public ArrayList<Event> getEventsByDate(LocalDate date) {
         ArrayList<Event> eventsTemp = new ArrayList<>();
         for (int i = 0; i < events.size(); i++) {
-            // Return an arraylist of events that occur on the date parameter
-            // If event starts before the end of day on the start date and ends after the start of day on end date
+            // If an event starts before the end of day on the start date, and ends after the start of day on end date, then add it to the arraylist
             if (events.get(i).getBeginDate().isBefore(date.plusDays(1).atStartOfDay()) && events.get(i).getEndDate().isAfter(date.atStartOfDay()) ) {
                 eventsTemp.add(events.get(i));
             }
@@ -65,6 +65,7 @@ public class CarPoolCalendar {
         return eventsTemp;
     }
 
+    // If the event is in this calendar, set it to the parameter passed to this method
     public void editEvent(Event event) {
         for (int i = 0; i < events.size(); i++) {
             if (events.get(i).getEventId().equals(event.getEventId())) {
@@ -107,6 +108,15 @@ public class CarPoolCalendar {
 
 
         return cal;
+    }
+
+    public boolean containsEvent(Event event) {
+        for (Event e : events) {
+            if (e.equals(event)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public String toString() {

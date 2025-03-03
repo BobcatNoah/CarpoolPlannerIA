@@ -38,8 +38,7 @@ public class HomeScreen extends JFrame {
     public HomeScreen(User user) {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setContentPane(contentPane);
-        pack();
-        //setSize(1200, 600);
+
 
         this.user = user;
         this.calendar = DBM.loadCalendar(user.getCalendarId());
@@ -99,12 +98,6 @@ public class HomeScreen extends JFrame {
             }
         });
 
-        settingsButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                initCalendar(dateView.getYear(), dateView.getMonthValue());
-            }
-        });
 
     }
 
@@ -158,6 +151,8 @@ public class HomeScreen extends JFrame {
                     JOptionPane.showMessageDialog(this, "Failed to join group. Try again.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
             }
+        } else {
+            JOptionPane.showMessageDialog(this, "Incorrect Password. Try again.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -247,13 +242,8 @@ public class HomeScreen extends JFrame {
             JPanel eventsOfDayPanel = new JPanel(new GridLayout(0, 1));
             ArrayList<Event> eventsOfDay = calendar.getEventsByDate(LocalDate.of(year, month, day));
             for (Event event : eventsOfDay) {
-                JButton eventButton = new JButton(event.getName());
-                eventButton.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        addEvent(event);
-                    }
-                });
+                // The name of the event should overflow to a new line if the name is too long
+                JButton eventButton = getEventButton(event);
                 eventsOfDayPanel.add(eventButton);
             }
             dayPanel.add(eventsOfDayPanel, BorderLayout.CENTER);
@@ -270,8 +260,7 @@ public class HomeScreen extends JFrame {
         ArrayList<String> temp = new ArrayList<>(user.getGroups());
         temp.add("My Calendar");
 
-        // TODO: This is a patch job fix for erratic behavior when updating the groupOptions. I simply remove the listener and add it back after the options have been updated
-        // Apparently this a permanent fix
+        // Dynamically updating groupOptions causes erratic behavior. This fix simply removes the listener and adds it back after the options have been updated
         ActionListener[] listeners = groupOptions.getActionListeners();
         for (ActionListener listener : listeners) {
             groupOptions.removeActionListener(listener);
@@ -294,11 +283,41 @@ public class HomeScreen extends JFrame {
         repaint();
     }
 
+    private JButton getEventButton(Event event) {
+        JButton eventButton = new JButton("<html><center>" + event.getName() + "</center></html>");
+        eventButton.setPreferredSize(new Dimension((int) Toolkit.getDefaultToolkit().getScreenSize().getWidth() / 8, -1)); // Adjust width as needed
+        // If event isn't shared, making the button blue
+        // otherwise make it green
+        int totalCapacity = 0;
+        for (Driver driver : event.getDrivers()) {
+            totalCapacity += driver.getCarCapacity();
+        }
+        if (event.getRiders().size() > totalCapacity) {
+            eventButton.setForeground(Color.RED);
+        } else {
+            if (event.getParentCalendarId().equals(calendar.getCalendarId())) {
+                eventButton.setForeground(Color.BLUE);
+
+            } else {
+                eventButton.setForeground(new Color(0, 153, 0));
+            }
+        }
+
+
+        eventButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                addEvent(event);
+            }
+        });
+        return eventButton;
+    }
+
     private void addEvent(Event event) {
         // Similar to the function below
         // But, I'm passing in the event to be edited
         // This shows a slightly different menu than creating an event
-        System.out.println("Event Menu");
+        System.out.println("Event Opened: " + event.getName());
         EditEventScreen createEventScreen = new EditEventScreen(user, calendar, event, () -> {
             initCalendar(dateView.getYear(), dateView.getMonthValue());
         });
@@ -306,7 +325,7 @@ public class HomeScreen extends JFrame {
 
     private void addEvent() {
         // Open event creator screen when user click the add event button
-        System.out.println("Event Menu");
+        System.out.println("New Event Menu Opened");
         EditEventScreen createEventScreen = new EditEventScreen(user, calendar, () -> {
             initCalendar(dateView.getYear(), dateView.getMonthValue());
         });
@@ -342,10 +361,6 @@ public class HomeScreen extends JFrame {
         addGroupButton = new JButton();
         addGroupButton.setText("Add Group");
         jButtonContainer.add(addGroupButton, BorderLayout.WEST);
-        settingsButton = new JButton();
-        settingsButton.setEnabled(true);
-        settingsButton.setText("Settings");
-        jButtonContainer.add(settingsButton, BorderLayout.EAST);
         addEventButton = new JButton();
         addEventButton.setText("Add Event");
         jButtonContainer.add(addEventButton, BorderLayout.CENTER);

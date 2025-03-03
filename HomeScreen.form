@@ -29,13 +29,6 @@
                   <text value="Add Group"/>
                 </properties>
               </component>
-              <component id="f4689" class="javax.swing.JButton" binding="settingsButton">
-                <constraints border-constraint="East"/>
-                <properties>
-                  <enabled value="true"/>
-                  <text value="Settings"/>
-                </properties>
-              </component>
               <component id="d7050" class="javax.swing.JButton" binding="addEventButton">
                 <constraints border-constraint="Center"/>
                 <properties>

@@ -3,6 +3,7 @@ import org.json.simple.JSONObject;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.UUID;
 
 public class Event {
@@ -136,4 +137,15 @@ public class Event {
         return event;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Event event = (Event) o;
+        return Objects.equals(name, event.name) && Objects.equals(beginDate, event.beginDate) && Objects.equals(endDate, event.endDate) && Objects.equals(eventId, event.eventId) && Objects.equals(parentCalendarId, event.parentCalendarId) && Objects.equals(drivers, event.drivers) && Objects.equals(riders, event.riders);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, beginDate, endDate, eventId, parentCalendarId, drivers, riders);
+    }
 }
